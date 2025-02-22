@@ -58,7 +58,9 @@ for i, day in enumerate(days_of_week):
         # Display existing tasks with checkboxes
         updated_tasks = []
         for task in tasks[day]["tasks"]:
-            if not st.checkbox(task["text"], key=f"{task['text']}_{i}"):
+            for idx, task in enumerate(tasks[day]["tasks"]):  # Add an index
+    if not st.checkbox(task["text"], key=f"{day}_{idx}"):  # Use index for uniqueness
+        updated_tasks.append(task)
                 updated_tasks.append(task)
 
         # Update tasks
