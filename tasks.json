@@ -1,0 +1,48 @@
+{
+    "Monday": {
+        "tasks": [
+            {
+                "text": "Today",
+                "done": false
+            },
+            {
+                "text": "Toda",
+                "done": false
+            },
+            {
+                "text": "Toda",
+                "done": false
+            }
+        ],
+        "notes": ""
+    },
+    "Tuesday": {
+        "tasks": [
+            {
+                "text": "Hello",
+                "done": false
+            }
+        ],
+        "notes": ""
+    },
+    "Wednesday": {
+        "tasks": [],
+        "notes": ""
+    },
+    "Thursday": {
+        "tasks": [],
+        "notes": ""
+    },
+    "Friday": {
+        "tasks": [],
+        "notes": ""
+    },
+    "Saturday": {
+        "tasks": [],
+        "notes": ""
+    },
+    "Sunday": {
+        "tasks": [],
+        "notes": ""
+    }
+}
