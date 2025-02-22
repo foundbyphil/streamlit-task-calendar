@@ -2,6 +2,7 @@ import streamlit as st
 import json
 import os
 import datetime
+from streamlit_sortables import st_sortable  # ✅ Drag-and-drop support
 
 # File path for saving tasks
 TASKS_FILE = "tasks.json"
@@ -32,12 +33,25 @@ start_of_week = today - datetime.timedelta(days=today.weekday())
 week_dates = {day: (start_of_week + datetime.timedelta(days=i)).strftime("%m/%d") for i, day in enumerate(DAYS_OF_WEEK)}
 
 # Streamlit UI Layout
-st.title("📅 Weekly Task Planner")
+st.title("📅 Weekly Task Planner with Drag & Drop & Recurring Tasks")
 
 # Grid layout for days
 cols = st.columns(7)
 
-# Input boxes for adding tasks
+# Recurring task input
+with st.sidebar:
+    st.header("🔁 Recurring Task")
+    recurring_task = st.text_input("Task Name")
+    recurring_days = st.multiselect("Repeat on:", DAYS_OF_WEEK)
+
+    if st.button("➕ Add Recurring Task"):
+        if recurring_task and recurring_days:
+            for day in recurring_days:
+                tasks[day]["tasks"].append({"text": recurring_task, "done": False})
+            save_tasks(tasks)
+            st.rerun()  # Refresh the page
+
+# Displaying tasks for each day
 for i, day in enumerate(DAYS_OF_WEEK):
     with cols[i]:
         st.subheader(f"{day} [{week_dates[day]}]")
@@ -50,23 +64,20 @@ for i, day in enumerate(DAYS_OF_WEEK):
             if new_task:
                 tasks[day]["tasks"].append({"text": new_task, "done": False})
                 save_tasks(tasks)
-                st.rerun()  # ✅ FIX: Updated from experimental_rerun() to rerun()
+                st.rerun()  # Refresh the page
 
-        # Display existing tasks with checkboxes
-        updated_tasks = []
-        for idx, task in enumerate(tasks[day]["tasks"]):
-            if not st.checkbox(task["text"], key=f"{day}_{idx}"):
-                updated_tasks.append(task)
-
-        # Update the task list for the day
-        tasks[day]["tasks"] = updated_tasks
-        save_tasks(tasks)
-
-# Drag-and-drop functionality (Mock-up)
-st.write("🖱 Drag-and-Drop Feature Coming Soon!")
+        # Drag-and-Drop Task List
+        if day in tasks:
+            reordered_tasks = st_sortable(
+                [{"text": task["text"], "done": task["done"]} for task in tasks[day]["tasks"]],
+                key=f"sortable_{day}",
+                direction="vertical"
+            )
+            tasks[day]["tasks"] = reordered_tasks
+            save_tasks(tasks)
 
 # Button to reset all tasks
 if st.button("🔄 Reset Weekly Tasks"):
     tasks = DEFAULT_TASKS
     save_tasks(tasks)
-    st.rerun()  # ✅ FIX: Updated from experimental_rerun() to rerun()
+    st.rerun()
