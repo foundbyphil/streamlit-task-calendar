@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import datetime
 
 # File path for saving tasks
 TASKS_FILE = "tasks.json"
@@ -25,6 +26,11 @@ def save_tasks(tasks):
 # Load tasks on startup
 tasks = load_tasks()
 
+# Get the current date and calculate the week's dates
+today = datetime.date.today()
+start_of_week = today - datetime.timedelta(days=today.weekday())
+week_dates = {day: (start_of_week + datetime.timedelta(days=i)).strftime("%m/%d") for i, day in enumerate(DAYS_OF_WEEK)}
+
 # Streamlit UI Layout
 st.title("📅 Weekly Task Planner")
 
@@ -34,7 +40,7 @@ cols = st.columns(7)
 # Input boxes for adding tasks
 for i, day in enumerate(DAYS_OF_WEEK):
     with cols[i]:
-        st.subheader(f"{day}")
+        st.subheader(f"{day} [{week_dates[day]}]")
 
         # Task input box
         new_task = st.text_input(f"Add Task for {day}", key=f"input_{day}")
@@ -44,7 +50,7 @@ for i, day in enumerate(DAYS_OF_WEEK):
             if new_task:
                 tasks[day]["tasks"].append({"text": new_task, "done": False})
                 save_tasks(tasks)
-                st.experimental_rerun()
+                st.rerun()  # ✅ FIX: Updated from experimental_rerun() to rerun()
 
         # Display existing tasks with checkboxes
         updated_tasks = []
@@ -63,4 +69,4 @@ st.write("🖱 Drag-and-Drop Feature Coming Soon!")
 if st.button("🔄 Reset Weekly Tasks"):
     tasks = DEFAULT_TASKS
     save_tasks(tasks)
-    st.experimental_rerun()
+    st.rerun()  # ✅ FIX: Updated from experimental_rerun() to rerun()
