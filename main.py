@@ -40,7 +40,7 @@ for day in days:
 df = pd.DataFrame(task_data)
 
 # Allow user to edit, reorder, and move tasks
-df = st.experimental_data_editor(df, num_rows="dynamic", use_container_width=True)
+df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
 
 # Save updated task list back to tasks.json
 new_tasks = {day: {"tasks": [], "notes": tasks[day]["notes"]} for day in days}
