@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 import datetime
-from streamlit_sortables import st_sortable  # ✅ Drag-and-drop support
+from streamlit_sortables import sort_items  # ✅ Corrected import for drag-and-drop
 
 # File path for saving tasks
 TASKS_FILE = "tasks.json"
@@ -35,10 +35,7 @@ week_dates = {day: (start_of_week + datetime.timedelta(days=i)).strftime("%m/%d"
 # Streamlit UI Layout
 st.title("📅 Weekly Task Planner with Drag & Drop & Recurring Tasks")
 
-# Grid layout for days
-cols = st.columns(7)
-
-# Recurring task input
+# Sidebar for recurring tasks
 with st.sidebar:
     st.header("🔁 Recurring Task")
     recurring_task = st.text_input("Task Name")
@@ -52,6 +49,8 @@ with st.sidebar:
             st.rerun()  # Refresh the page
 
 # Displaying tasks for each day
+cols = st.columns(7)
+
 for i, day in enumerate(DAYS_OF_WEEK):
     with cols[i]:
         st.subheader(f"{day} [{week_dates[day]}]")
@@ -68,11 +67,10 @@ for i, day in enumerate(DAYS_OF_WEEK):
 
         # Drag-and-Drop Task List
         if day in tasks:
-            reordered_tasks = st_sortable(
-                [{"text": task["text"], "done": task["done"]} for task in tasks[day]["tasks"]],
-                key=f"sortable_{day}",
-                direction="vertical"
-            )
+            task_list = [{"text": task["text"], "done": task["done"]} for task in tasks[day]["tasks"]]
+            reordered_tasks = sort_items(task_list, direction="vertical", key=f"sortable_{day}")
+
+            # Save reordered tasks
             tasks[day]["tasks"] = reordered_tasks
             save_tasks(tasks)
 
@@ -81,3 +79,4 @@ if st.button("🔄 Reset Weekly Tasks"):
     tasks = DEFAULT_TASKS
     save_tasks(tasks)
     st.rerun()
+
