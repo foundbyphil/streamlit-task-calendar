@@ -3,74 +3,96 @@ import pandas as pd
 import json
 import datetime
 
+# Define the tasks.json file
+TASKS_FILE = "tasks.json"
+
 # Load tasks from JSON file
 def load_tasks():
     try:
-        with open("tasks.json", "r") as file:
+        with open(TASKS_FILE, "r") as file:
             return json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         return {day: {"tasks": [], "notes": ""} for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]}
 
-# Save tasks to JSON file
+# Save tasks back to JSON file
 def save_tasks(tasks):
-    with open("tasks.json", "w") as file:
+    with open(TASKS_FILE, "w") as file:
         json.dump(tasks, file, indent=4)
 
-# Initialize session state for first-time run
-if "tasks" not in st.session_state:
-    st.session_state["tasks"] = load_tasks()
+# Load tasks
+tasks = load_tasks()
 
-tasks = st.session_state["tasks"]
+# Streamlit page config
+st.set_page_config(page_title="Task Calendar", layout="wide")
 
-# Layout setup
-st.title("🗓 Weekly Task Calendar")
-st.write("Manage your weekly tasks and move them between days.")
+# Create a grid layout that matches the reference image
+st.title("📅 Weekly Task Planner")
 
-# Grid layout for the weekly planner
-cols = st.columns(7)
-days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+# Get current date
 current_date = datetime.date.today()
-week_dates = [(current_date + datetime.timedelta(days=i - current_date.weekday())).strftime("%b %d") for i in range(7)]
+week_dates = {day: (current_date + datetime.timedelta(days=i - current_date.weekday())).strftime("%Y-%m-%d") for i, day in enumerate(tasks.keys())}
 
-for i, col in enumerate(cols):
-    with col:
-        st.subheader(f"{days_of_week[i]}  [{week_dates[i]}]")
-        new_task = st.text_input(f"Add task for {days_of_week[i]}", key=f"input_{i}")
-        if st.button(f"➕ Add", key=f"add_{i}") and new_task:
-            tasks[days_of_week[i]]["tasks"].append(new_task)
-            save_tasks(tasks)
-            st.rerun()
-        
+# Initialize column layout
+cols = st.columns(7)  # 7 columns for each day of the week
+
+# Map days of the week
+days_of_week = list(tasks.keys())
+
+# Drag-and-drop session state
+if "dragging_task" not in st.session_state:
+    st.session_state.dragging_task = None
+
+# Display each day with its tasks
+for i, day in enumerate(days_of_week):
+    with cols[i]:
+        st.subheader(f"{day} [{week_dates[day]}]")
+
+        # Input box to add new tasks
+        new_task = st.text_input(f"Add Task ({day})", key=f"input_{day}")
+        if st.button(f"➕ Add to {day}", key=f"add_{day}"):
+            if new_task:
+                tasks[day]["tasks"].append({"text": new_task, "done": False})
+                save_tasks(tasks)
+                st.experimental_rerun()
+
         # Display existing tasks with checkboxes
         updated_tasks = []
-        for task in tasks[days_of_week[i]]["tasks"]:
-            if not st.checkbox(task, key=f"{task}_{i}"):
+        for task in tasks[day]["tasks"]:
+            if not st.checkbox(task["text"], key=f"{task['text']}_{i}"):
                 updated_tasks.append(task)
-        tasks[days_of_week[i]]["tasks"] = updated_tasks
+
+        # Update tasks
+        tasks[day]["tasks"] = updated_tasks
         save_tasks(tasks)
 
-# Sidebar for moving tasks
-st.sidebar.header("Move Tasks")
-for day in days_of_week:
-    st.sidebar.subheader(day)
-    if tasks[day]["tasks"]:
-        move_task = st.selectbox(f"Select a task from {day}", ["None"] + tasks[day]["tasks"], key=f"move_{day}")
-        target_day = st.selectbox(f"Move to", days_of_week, key=f"target_{day}")
-        if st.button(f"Move {day}", key=f"btn_{day}") and move_task != "None":
-            tasks[day]["tasks"].remove(move_task)
-            tasks[target_day]["tasks"].append(move_task)
-            save_tasks(tasks)
-            st.rerun()
+        # Drag-and-drop functionality
+        st.markdown("---")
+        move_task = st.selectbox(f"Move task from {day}", [None] + [t["text"] for t in tasks[day]["tasks"]], key=f"move_{day}")
+        move_to_day = st.selectbox(f"Move to", [None] + days_of_week, key=f"moveto_{day}")
 
-# Sidebar for recurring tasks
-st.sidebar.header("Recurring Tasks")
-recurring_task = st.text_input("Task Name", key="recurring_task")
-recurring_days = st.multiselect("Repeat on Days", days_of_week, key="recurring_days")
-if st.button("Add Recurring Task") and recurring_task:
-    for day in recurring_days:
-        if recurring_task not in tasks[day]["tasks"]:
-            tasks[day]["tasks"].append(recurring_task)
-    save_tasks(tasks)
-    st.rerun()
+        if st.button(f"Move Task ({day})", key=f"move_btn_{day}"):
+            if move_task and move_to_day and move_to_day != day:
+                task_obj = next((t for t in tasks[day]["tasks"] if t["text"] == move_task), None)
+                if task_obj:
+                    tasks[day]["tasks"].remove(task_obj)
+                    tasks[move_to_day]["tasks"].append(task_obj)
+                    save_tasks(tasks)
+                    st.experimental_rerun()
 
-st.success("✅ Tasks saved automatically. Refresh the page if changes don't appear.")
+        # Notes section
+        st.text_area(f"Notes ({day})", value=tasks[day]["notes"], key=f"notes_{day}", height=100)
+
+# Recurring tasks feature
+st.sidebar.header("🔁 Recurring Tasks")
+recurring_task = st.sidebar.text_input("Recurring Task Name")
+recurring_days = st.sidebar.multiselect("Repeat on:", days_of_week)
+if st.sidebar.button("➕ Add Recurring Task"):
+    if recurring_task and recurring_days:
+        for day in recurring_days:
+            tasks[day]["tasks"].append({"text": recurring_task, "done": False})
+        save_tasks(tasks)
+        st.experimental_rerun()
+
+# Save updated tasks
+save_tasks(tasks)
+
